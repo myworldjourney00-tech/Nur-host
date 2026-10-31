@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Websites - Nur Host</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/dashboard.html" class="brand">Nur Host</a>
+    <div class="nav-links">
+      <a href="/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+      <a href="/create.html" class="btn btn-primary btn-sm">+ New Website</a>
+    </div>
+  </nav>
+
+  <div class="container animate-fade-in">
+    <h2 style="margin-bottom:1.5rem;">My Hosted Websites</h2>
+    <div id="websiteCardsContainer" class="grid-cards">
+      <p style="color:var(--text-muted);">Fetching your websites...</p>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth(true);
+      loadWebsites();
+    });
+
+    async function loadWebsites() {
+      try {
+        const res = await fetch('/api/websites');
+        const data = await res.json();
+        const container = document.getElementById('websiteCardsContainer');
+        container.innerHTML = '';
+
+        if (!data.success || data.websites.length === 0) {
+          container.innerHTML = '<p style="color:var(--text-muted);">No deployed websites found. Create your first website to get started.</p>';
+          return;
+        }
+
+        data.websites.forEach(site => {
+          const liveUrl = `${window.location.origin}/u/${site.slug}`;
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3>${site.name}</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:12px;">
+              Live URL: <a href="${liveUrl}" target="_blank" style="color:var(--accent-blue); word-break:break-all;">${liveUrl}</a>
+            </p>
+            <div class="status-indicator live" style="margin-bottom:18px;">
+              <span class="status-dot"></span>
+              <span>${site.status}</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <a href="${liveUrl}" target="_blank" class="btn btn-outline btn-sm">Visit</a>
+              <button class="btn btn-outline btn-sm" onclick="copyLink('${liveUrl}')">Copy Link</button>
+              <a href="/edit.html?id=${site.id}" class="btn btn-primary btn-sm">Edit</a>
+              <button class="btn btn-danger btn-sm" onclick="deleteWebsite('${site.id}')">Delete</button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {
+        showToast('Unable to fetch website listings.', true);
+      }
+    }
+
+    function copyLink(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Website URL copied to clipboard.');
+      });
+    }
+
+    async function deleteWebsite(id) {
+      if (!confirm('Are you sure you want to permanently delete this website? This action cannot be undone.')) return;
+      try {
+        const res = await fetch(`/api/websites/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Website deleted successfully.');
+          loadWebsites();
+        } else {
+          showToast(data.error || 'Failed to delete website.', true);
+        }
+      } catch (err) {
+        showToast('Error communicating with server.', true);
+      }
+    }
+  </script>
+</body>
+</html>
