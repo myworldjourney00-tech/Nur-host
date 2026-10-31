@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: nur-host
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_OWNER
+        sync: false
+      - key: GITHUB_REPO
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_BASE_URL
+        sync: false
