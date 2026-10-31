@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Website - Nur Host</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/dashboard.html" class="brand">Nur Host</a>
+    <div class="nav-links">
+      <a href="/websites.html" class="btn btn-outline btn-sm">Back</a>
+    </div>
+  </nav>
+
+  <div class="container animate-fade-in">
+    <h2 style="margin-bottom:1.5rem;">Edit & Redeploy Website</h2>
+
+    <div class="grid-cards" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+      <div class="form-group">
+        <label>Website Name</label>
+        <input type="text" id="editSiteName" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label>Logo URL (Optional)</label>
+        <input type="url" id="editLogoUrl" class="form-control">
+      </div>
+    </div>
+
+    <!-- Code Editor -->
+    <div class="editor-wrapper">
+      <div class="editor-toolbar">
+        <button class="btn btn-outline btn-sm" onclick="editorInstance.updatePreview()">Refresh Preview</button>
+      </div>
+      <div class="code-area-container">
+        <div id="editLineNumbers" class="line-numbers">1</div>
+        <textarea id="editHtmlEditor" class="code-editor" spellcheck="false"></textarea>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-container">
+      <div class="preview-header"><span>Isolated Live Preview</span></div>
+      <iframe id="editPreviewFrame" class="preview-frame" sandbox="allow-scripts"></iframe>
+    </div>
+
+    <div style="margin-top:1.75rem;">
+      <button id="updateBtn" class="btn btn-primary" style="padding:0.85rem 2rem; width:100%; font-size:1.05rem;">
+        Save Changes & Redeploy
+      </button>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/editor.js"></script>
+  <script>
+    let editorInstance;
+    const urlParams = new URLSearchParams(window.location.search);
+    const siteId = urlParams.get('id');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth(true);
+      if (!siteId) {
+        window.location.href = '/websites.html';
+        return;
+      }
+
+      editorInstance = initEditor('editHtmlEditor', 'editLineNumbers', 'editPreviewFrame');
+
+      try {
+        const res = await fetch(`/api/websites/${siteId}`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('editSiteName').value = data.website.name;
+          document.getElementById('editLogoUrl').value = data.website.logoUrl || '';
+          editorInstance.setContent(data.htmlContent);
+        } else {
+          showToast(data.error || 'Failed to load website details.', true);
+        }
+      } catch (err) {
+        showToast('Network error loading website data.', true);
+      }
+
+      document.getElementById('updateBtn').addEventListener('click', async () => {
+        const name = document.getElementById('editSiteName').value;
+        const logoUrl = document.getElementById('editLogoUrl').value;
+        const htmlContent = document.getElementById('editHtmlEditor').value;
+
+        const btn = document.getElementById('updateBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Redeploying to GitHub...';
+
+        try {
+          const res = await fetch(`/api/websites/${siteId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, logoUrl, htmlContent })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('Website updated and redeployed successfully.');
+            setTimeout(() => { window.location.href = '/websites.html'; }, 1000);
+          } else {
+            showToast(data.error || 'Failed to update website.', true);
+            btn.disabled = false;
+            btn.innerHTML = 'Save Changes & Redeploy';
+          }
+        } catch (e) {
+          showToast('Update failed due to a network error.', true);
+          btn.disabled = false;
+          btn.innerHTML = 'Save Changes & Redeploy';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
