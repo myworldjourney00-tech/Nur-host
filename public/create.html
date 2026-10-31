@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Website - Nur Host</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/dashboard.html" class="brand">Nur Host</a>
+    <div class="nav-links">
+      <a href="/dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+    </div>
+  </nav>
+
+  <div class="container animate-fade-in">
+    <h2 style="margin-bottom:1.5rem;">Deploy Single-File HTML Website</h2>
+
+    <div class="grid-cards" style="grid-template-columns: 1fr 1fr; margin-bottom: 1.5rem;">
+      <div class="form-group">
+        <label>Website Name *</label>
+        <input type="text" id="siteName" class="form-control" placeholder="e.g. My Portfolio" required>
+      </div>
+      <div class="form-group">
+        <label>Logo or Icon URL (Optional)</label>
+        <input type="url" id="logoUrl" class="form-control" placeholder="https://example.com/logo.png">
+      </div>
+    </div>
+
+    <!-- Code Editor Area -->
+    <label style="color:var(--text-muted); font-size:0.9rem; margin-bottom:6px; display:block;">HTML Source Code *</label>
+    <div class="editor-wrapper">
+      <div class="editor-toolbar">
+        <button class="btn btn-outline btn-sm" onclick="editorInstance.clear()">Clear Code</button>
+        <button class="btn btn-outline btn-sm" onclick="editorInstance.updatePreview()">Refresh Preview</button>
+      </div>
+      <div class="code-area-container">
+        <div id="lineNumbers" class="line-numbers">1</div>
+        <textarea id="htmlEditor" class="code-editor" spellcheck="false"><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Deployed Website</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      text-align: center;
+      padding: 60px 20px;
+      background: #0f172a;
+      color: #f8fafc;
+    }
+    h1 {
+      color: #38bdf8;
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Hello from Nur Host</h1>
+  <p>This entire single-file HTML website is deployed and delivered in seconds.</p>
+  <script>
+    console.log("Hosted with Nur Host.");
+  </script>
+</body>
+</html></textarea>
+      </div>
+    </div>
+
+    <!-- Sandbox Isolated Preview -->
+    <div class="preview-container">
+      <div class="preview-header">
+        <span>Isolated Sandbox Preview</span>
+      </div>
+      <iframe id="previewFrame" class="preview-frame" sandbox="allow-scripts"></iframe>
+    </div>
+
+    <div style="margin-top:1.75rem;">
+      <button id="deployBtn" class="btn btn-primary" style="padding:0.85rem 2rem; font-size:1.05rem; width:100%;">
+        Deploy Website
+      </button>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/editor.js"></script>
+  <script>
+    let editorInstance;
+    document.addEventListener('DOMContentLoaded', async () => {
+      await checkAuth(true);
+      editorInstance = initEditor('htmlEditor', 'lineNumbers', 'previewFrame');
+
+      document.getElementById('deployBtn').addEventListener('click', async () => {
+        const name = document.getElementById('siteName').value;
+        const logoUrl = document.getElementById('logoUrl').value;
+        const htmlContent = document.getElementById('htmlEditor').value;
+
+        if (!name.trim()) return showToast('Please enter a website name.', true);
+        if (!htmlContent.trim()) return showToast('HTML source code cannot be empty.', true);
+
+        const btn = document.getElementById('deployBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Deploying to GitHub Storage...';
+
+        try {
+          const res = await fetch('/api/websites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, logoUrl, htmlContent })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('Deployment successful! Redirecting...');
+            setTimeout(() => {
+              window.location.href = `/websites.html?deployed=${data.website.id}`;
+            }, 1000);
+          } else {
+            showToast(data.error || 'Deployment failed', true);
+            btn.disabled = false;
+            btn.innerHTML = 'Deploy Website';
+          }
+        } catch (err) {
+          showToast('Network error during deployment. Please try again.', true);
+          btn.disabled = false;
+          btn.innerHTML = 'Deploy Website';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
